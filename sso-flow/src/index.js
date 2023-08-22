@@ -33,8 +33,8 @@ const { acceptTncAndGenerateToken } = require('../helpers/userService');
 const VDNURL = envHelper.vdnURL || 'https://dockstaging.sunbirded.org';
 const { getAuthToken } = require('../helpers/kongTokenHelper');
 
-function initializeRoute(app) {//initializeroutes function
-    app.get('/v2/user/session/create', async (req, res) => { // updating api version to 2
+function initializeRoute() {//initializeroutes function
+    return  async (req, res) => { // updating api version to 2
         logger.info({msg: '/v2/user/session/create called'});
         let jwtPayload, userDetails, redirectUrl, errType, orgDetails;
         try {
@@ -110,10 +110,121 @@ function initializeRoute(app) {//initializeroutes function
         } finally {
           res.redirect(redirectUrl || errorUrl);
         }
-      });
+      }
 
 
 }
+function handleVerifiedContactRoute() {//contact verified
+  return async (req, res) => {
+    logger.info({ msg: '/v1/sso/contact/verified called' });
+    let userDetails, jwtPayload, redirectUrl, errType;
+
+    jwtPayload = req.session.jwtPayload; // fetch from session
+    userDetails = req.session.userDetails; // fetch from session
+
+    try {
+      let decryptedData;
+      let otpDecryptedData;
+
+      if (_.get(req, 'session.userEncryptedInfo')) {
+        decryptedData = decrypt(req.session.userEncryptedInfo);
+        decryptedData = JSON.parse(decryptedData);
+      }
+
+      if (_.get(req, 'session.otpEncryptedInfo')) {
+        otpDecryptedData = decrypt(req.session.otpEncryptedInfo);
+        otpDecryptedData = JSON.parse(otpDecryptedData);
+      }
+
+      // Rest of your existing code goes here
+
+    } catch (error) {
+      redirectUrl = `${errorUrl}?error_message=` + getErrorMessage(error, errType);
+      logger.error({
+        msg: 'sso user creation/phone update failed, redirected to error page',
+        error,
+        additionalInfo: {
+          state_Id: jwtPayload.state_id,
+          errType: errType,
+          queryParams: req.query,
+          userDetails: userDetails,
+          jwtPayload: jwtPayload,
+          redirectUrl: redirectUrl,
+        }
+      });
+      logErrorEvent(req, errType, error);
+    } finally {
+      res.redirect(redirectUrl || errorUrl);
+    }
+  };
+}
+function handleSuccessRedirect() {//handle success redirect
+  return async (req, res) => {
+    logger.info({ msg: '/v1/sso/success/redirect called' });
+    let userDetails, jwtPayload, redirectUrl, errType, redirectURIFromCookie;
+    jwtPayload = req.session.jwtPayload;
+    userDetails = req.session.userDetails;
+    try {
+      if (_.isEmpty(jwtPayload) || _.isEmpty(userDetails)) {
+        errType = 'MISSING_QUERY_PARAMS';
+        throw 'some of the query params are missing';
+      }
+      errType = 'CREATE_SESSION';
+      await createSession(userDetails.userName, 'portal', req, res);
+      redirectURIFromCookie = _.get(req, 'cookies.SSO_REDIRECT_URI');
+      if (redirectURIFromCookie) {
+        const parsedRedirectURIFromCookie = url.parse(decodeURI(redirectURIFromCookie), true);
+        delete parsedRedirectURIFromCookie.query.auth_callback;
+        delete parsedRedirectURIFromCookie.search;
+        redirectUrl = url.format(parsedRedirectURIFromCookie);
+      } else {
+        redirectUrl = jwtPayload.redirect_uri ? jwtPayload.redirect_uri : '/resources';
+      }
+      logger.info({
+        msg: 'sso sign-in success callback, session created',
+        additionalInfo: {
+          state_Id: jwtPayload.state_id,
+          query: req.query,
+          redirectUrl: redirectUrl,
+          errType: errType
+        }
+      });
+    } catch (error) {
+      redirectUrl = `${errorUrl}?error_message=` + getErrorMessage(error, errType);
+      logger.error({
+        msg: 'sso sign-in success callback, create session error',
+        error,
+        additionalInfo: {
+          state_id: jwtPayload.state_id,
+          query: req.query,
+          jwtPayload: jwtPayload,
+          redirectUrl: redirectUrl,
+          errType: errType
+        }
+      });
+      logErrorEvent(req, errType, error);
+    } finally {
+      redirectURIFromCookie && res.cookie('SSO_REDIRECT_URI', '', { expires: new Date(0) });
+      res.redirect(redirectUrl || errorUrl);
+    }
+  };
+}
+
+ 
+
+
+
+
+// Usage:
+// app.get('/v2/user/session/create', initializeRoute());
+// app.get('/v1/sso/contact/verified', handleVerifiedContactRoute());
+// app.get('/v1/sso/success/redirect', handleSuccessRedirect());
+
+// Export the function if needed
+module.exports = {
+  handleVerifiedContactRoute,
+};
+
 
 
  
