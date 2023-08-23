@@ -105,28 +105,83 @@ function initializeRoute() {//initializeroutes function
 }
 function handleVerifiedContactRoute() {//contact verified
   return async (req, res) => {
-    logger.info({ msg: '/v1/sso/contact/verified called' });
+    logger.info({msg: '/v1/sso/contact/verified called'});
     let userDetails, jwtPayload, redirectUrl, errType;
-
     jwtPayload = req.session.jwtPayload; // fetch from session
     userDetails = req.session.userDetails; // fetch from session
-
     try {
       let decryptedData;
       let otpDecryptedData;
-
       if (_.get(req, 'session.userEncryptedInfo')) {
         decryptedData = decrypt(req.session.userEncryptedInfo);
         decryptedData = JSON.parse(decryptedData);
       }
-
       if (_.get(req, 'session.otpEncryptedInfo')) {
         otpDecryptedData = decrypt(req.session.otpEncryptedInfo);
         otpDecryptedData = JSON.parse(otpDecryptedData);
       }
-
-      // Rest of your existing code goes here
-
+      // If data encrypted in session create route; `identifier` should match with the incoming request session user `identifier`
+      if (_.get(decryptedData, 'identifier') !== '' && _.get(decryptedData, 'identifier') !== userDetails.identifier) {
+        errType = 'FORBIDDEN';
+        throw 'Access Forbidden - User identifier mismatch with session create payload';
+      }
+      if (_.isEmpty(jwtPayload) && ((!['phone', 'email', 'tncVersion', 'tncAccepted'].includes(req.query.type) && !req.query.value) || req.query.userId)) {
+        errType = 'MISSING_QUERY_PARAMS';
+        throw 'some of the query params are missing';
+      }
+      if (_.get(otpDecryptedData, req.query.type) !== req.query.value) {
+        errType = 'FORBIDDEN';
+        throw 'Access Forbidden - User identifier mismatch with OTP payload';
+      }
+      if (!_.isEmpty(userDetails) && !userDetails[req.query.type]) { // existing user without phone
+        errType = 'UPDATE_CONTACT_DETAILS';
+        await updateContact(req, userDetails).catch(handleProfileUpdateError); // api need to be verified
+        if (req.query.tncAccepted === 'true') {
+          errType = 'ACCEPT_TNC';
+          await acceptTncAndGenerateToken(req.query.value, req.query.tncVersion).catch(handleProfileUpdateError);
+        }
+        logger.info({
+          msg: 'sso phone updated successfully and redirected to success page',
+          additionalInfo: {
+            state_id: jwtPayload.state_id,
+            phone: req.query.phone,
+            jwtPayload: jwtPayload,
+            userDetails: userDetails,
+            errType: errType
+          }
+        })
+      } else if (_.isEmpty(userDetails)) { // create user and update roles
+        errType = 'CREATE_USER';
+        const newUserDetails = await createUser(req, jwtPayload).catch(handleProfileUpdateError);
+        await delay();
+        if (jwtPayload.roles && jwtPayload.roles.length) {
+          errType = 'UPDATE_USER_ROLES';
+          await updateRoles(req, newUserDetails.result.userId, jwtPayload).catch(handleProfileUpdateError);
+        }
+        errType = 'FETCH_USER_AFTER_CREATE';
+        userDetails = await fetchUserWithExternalId(jwtPayload, req); // to get userName
+        if(_.isEmpty(userDetails)){
+          errType = 'USER_DETAILS_EMPTY';
+          throw 'USER_DETAILS_IS_EMPTY';
+        }
+        req.session.userDetails = userDetails;
+        if (req.query.tncAccepted === 'true') {
+          errType = 'ACCEPT_TNC';
+          await acceptTncAndGenerateToken(userDetails.userName, req.query.tncVersion).catch(handleProfileUpdateError);
+        }
+        redirectUrl = successUrl + getEncyptedQueryParams({userName: userDetails.userName});
+        logger.info({
+          msg: 'sso user creation and role updated successfully and redirected to success page',
+          additionalInfo: {
+            state_id: jwtPayload.state_id,
+            phone: req.query.phone,
+            jwtPayload: jwtPayload,
+            userDetails: userDetails,
+            redirectUrl: redirectUrl,
+            errType: errType
+          }
+        })
+      }
     } catch (error) {
       redirectUrl = `${errorUrl}?error_message=` + getErrorMessage(error, errType);
       logger.error({
@@ -140,7 +195,7 @@ function handleVerifiedContactRoute() {//contact verified
           jwtPayload: jwtPayload,
           redirectUrl: redirectUrl,
         }
-      });
+      })
       logErrorEvent(req, errType, error);
     } finally {
       res.redirect(redirectUrl || errorUrl);
@@ -212,11 +267,11 @@ function handleSuccessRedirect() {//handle success redirect
 // Export the function if needed
 module.exports = {
   handleVerifiedContactRoute,
+  handleSuccessRedirect,
+  initializeRoute
 };
 
 
 
  
-module.exports = {
-    initializeRoute,
-};
+ 
