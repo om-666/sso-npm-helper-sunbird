@@ -1,16 +1,17 @@
 const _ = require('lodash');
 const jwt = require('jsonwebtoken');
-const envHelper = require('../helpers/environmentVariablesHelper');
-const { encrypt, decrypt } = require('../helpers/crypto');
+const envHelper = require('../../../helpers/environmentVariablesHelper');
+
+const { encrypt, decrypt } = require('../../../helpers/crypto');
 const {
   verifySignature, verifyIdentifier, verifyToken, fetchUserWithExternalId, createUser, fetchUserDetails,
   createSession, updateContact, updateRoles, sendSsoKafkaMessage, migrateUser, freeUpUser, getIdentifier,
   orgSearch
-} = require('./../helpers/ssoHelper');  
-const telemetryHelper = require('../helpers/telemetryHelper');
-const { generateAuthToken, getGrantFromCode } = require('../helpers/keyCloakHelperService');
-const { parseJson, isDateExpired } = require('../helpers/utilityService');
-const { getUserIdFromToken } = require('../helpers/jwtHelper');
+} = require('../../../helpers/ssoHelper');  
+const telemetryHelper = require('../../../helpers/telemetryHelper');
+const { generateAuthToken, getGrantFromCode } = require('../../../helpers/keyCloakHelperService');
+const { parseJson, isDateExpired } = require('../../../helpers/utilityService');
+const { getUserIdFromToken } = require('../../../helpers/jwtHelper'); //
 const fs = require('fs');
 const externalKey = envHelper.CRYPTO_ENCRYPTION_KEY_EXTERNAL;
 const successUrl = '/sso/sign-in/success';
@@ -18,9 +19,9 @@ const updateContactUrl = '/sign-in/sso/update/contact';
 const errorUrl = '/sso/sign-in/error';
 const { logger } = require('@project-sunbird/logger');
 const url = require('url');
-const { acceptTncAndGenerateToken } = require('../helpers/userService');
+const { acceptTncAndGenerateToken } = require('../../../helpers/userService');
 const VDNURL = envHelper.vdnURL || 'https://dockstaging.sunbirded.org';
-const { getAuthToken } = require('../helpers/kongTokenHelper');
+const { getAuthToken } = require('../../../helpers/kongTokenHelper');
 
 function initializeRoute() {//initializeroutes function
     return  async (req, res) => { // updating api version to 2
