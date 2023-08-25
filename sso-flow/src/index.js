@@ -7,7 +7,7 @@ const {
   verifySignature, verifyIdentifier, verifyToken, fetchUserWithExternalId, createUser, fetchUserDetails,
   createSession, updateContact, updateRoles, sendSsoKafkaMessage, migrateUser, freeUpUser, getIdentifier,
   orgSearch
-} = require('../../../helpers/ssoHelper');  
+} = require('../helpers/ssoHelper');  
 const telemetryHelper = require('../../../helpers/telemetryHelper');
 const { generateAuthToken, getGrantFromCode } = require('../../../helpers/keyCloakHelperService');
 const { parseJson, isDateExpired } = require('../../../helpers/utilityService');
