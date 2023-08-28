@@ -1,6 +1,6 @@
 {
   "name": "sso-sunbird-helper",
-  "version": "1.0.9",
+  "version": "1.0.11",
   "description": "The sso-sunbird-helper npm package is a comprehensive toolkit designed to streamline and simplify the implementation of State Sign-On (SSO) flows within the Sunbird Education platform. This package offers a range of utility functions, tools, and resources that enable developers to seamlessly integrate Single Sign-On mechanisms into their Sunbird-based applications.",
   "main": "index.js",
   "scripts": {
@@ -17,10 +17,13 @@
   },
   "homepage": "https://github.com/om-666/sso-npm-helper-sunbird#readme",
   "dependencies": {
-    "@project-sunbird/logger": "^0.0.11",
+    "@project-sunbird/logger": "0.0.11",
+    "dateformat": "^5.0.3",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.1",
     "lodash": "^4.17.21",
-    "url": "^0.11.1"
+    "request-promise": "^4.2.6",
+    "url": "^0.11.1",
+    "uuid": "^9.0.0"
   }
 }
