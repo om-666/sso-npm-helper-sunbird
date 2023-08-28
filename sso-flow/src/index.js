@@ -24,12 +24,12 @@ const VDNURL = envHelper.vdnURL || 'https://dockstaging.sunbirded.org';
 const { getAuthToken } = require('../../../helpers/kongTokenHelper');
 
 function initializeRoute() {//initializeroutes function
-    return  async (req, res) => { // updating api version to 2
+    return  async (req, res) => { 
         logger.info({msg: '/v2/user/session/create called'});
         let jwtPayload, userDetails, redirectUrl, errType, orgDetails;
         try {
           errType = 'VERIFY_SIGNATURE';
-          await verifySignature(req.query.token); // it is coming from the ssohelper.js file
+          await verifySignature(req.query.token);  
           jwtPayload = jwt.decode(req.query.token);
           if (!jwtPayload.state_id || !jwtPayload.school_id || !jwtPayload.name || !jwtPayload.sub) {
             errType = 'PAYLOAD_DATA_MISSING';
@@ -40,9 +40,9 @@ function initializeRoute() {//initializeroutes function
             stateToken: req.query.token
           };
           errType = 'VERIFY_TOKEN';
-          verifyToken(jwtPayload); // it is comes from the ssohelper.js file
+          verifyToken(jwtPayload);  
           errType = 'USER_FETCH_API';
-          userDetails = await fetchUserWithExternalId(jwtPayload, req);// it is comes from the ssohelper.js file
+          userDetails = await fetchUserWithExternalId(jwtPayload, req); 
           if (_.get(req,'cookies.redirectPath')){
             res.cookie ('userDetails', JSON.stringify(encrypt(userDetails.userName, externalKey)));
           }
@@ -254,18 +254,6 @@ function handleSuccessRedirect() {//handle success redirect
     }
   };
 }
-
- 
-
-
-
-
-// Usage:
-// app.get('/v2/user/session/create', initializeRoute());
-// app.get('/v1/sso/contact/verified', handleVerifiedContactRoute());
-// app.get('/v1/sso/success/redirect', handleSuccessRedirect());
-
-// Export the function if needed
 module.exports = {
   handleVerifiedContactRoute,
   handleSuccessRedirect,
