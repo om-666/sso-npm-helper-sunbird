@@ -1,13 +1,19 @@
 {
   "name": "sso-sunbird-helper",
-  "version": "1.0.14",
+  "version": "1.0.18",
   "description": "The sso-sunbird-helper npm package is a comprehensive toolkit designed to streamline and simplify the implementation of State Sign-On (SSO) flows within the Sunbird Education platform. This package offers a range of utility functions, tools, and resources that enable developers to seamlessly integrate Single Sign-On mechanisms into their Sunbird-based applications.",
   "keywords": [
     "sso",
     "state sign-on",
     "Sunbird",
     "Sunbird-ed",
-    "SSO integration"
+    "SSO integration",
+    "education platform",
+    "user access",
+    "authentication",
+  "authorization",
+  "developer toolkit",
+  "utility functions"
   ],
   "main": "index.js",
   "scripts": {
